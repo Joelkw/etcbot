@@ -33,8 +33,7 @@ class BaseBotClient(p.Protocol):
 	threading.Timer(1.0, self.sendsellorders).start()
     
     def dataReceived(self, data):
-	if 'FILL' in data:
-		print data
+	pass
 
     def Send(self, arg):
 	print 'sending %s' % arg
