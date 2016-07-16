@@ -81,7 +81,7 @@ class BaseBotClient(p.Protocol):
               self.b.book_message(sym, pp, ss)
 
     def Send(self, arg):
-	print 'sending %s' % arg
+        print 'sending %s' % arg
         self.transport.write(arg + '\n')
   
     def SendHello(self):
@@ -101,8 +101,11 @@ class BaseBotClient(p.Protocol):
     def SendOrder(self, *args, **kwargs):
         self._SendOrder(*args, **kwargs)
 
-    def SendBondOrder(self, buy, price, amount):
+    def SendAllOrder(self, buy, price, amount):
     	self.SendOrder('ADD', 'BOND', buy, price , amount)
+
+    def hello(self, sym, buy, price, amount):
+        self.SendOrder('ADD', sym, buy, price, amount)
     
 
 class BaseBotFactory(p.ClientFactory):
