@@ -1,0 +1,2 @@
+# etcbot
+for etc hackathon
