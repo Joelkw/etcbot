@@ -34,6 +34,7 @@ class BaseBotClient(p.Protocol):
 	threading.Timer(1.0, self.sendsellorders).start()
     
     def dataReceived(self, data):
+    	print data 
 	pass
 
     def Send(self, arg):
@@ -77,7 +78,7 @@ class BaseBotFactory(p.ClientFactory):
     def __init__(self):
         pass
 
-reactor.connectTCP(EXCHANGE_URL, 20000, BaseBotFactory())
+reactor.connectTCP(EXCHANGE_URL, 20001, BaseBotFactory())
 reactor.run()
 
 # symbols = ["BOND", "VALBZ", "VALE", "GS", "MS", "WFC", "XLF"]
