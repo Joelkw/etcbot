@@ -6,7 +6,7 @@ import uuid
 from twisted.internet import reactor, protocol as p
 
 TEAMNAME = 'IMMEDEBUG'
-EXCHANGE_URL = 'test-exch-teamname'
+EXCHANGE_URL = 'test-exch-' + TEAMNAME
 BUFFER = 1024
 
 SYMBOLS = {
@@ -22,7 +22,7 @@ SYMBOLS = {
 class BaseBotClient(p.Protocol):
 
     def connectionMade(self):
-        print 'hi', self.factory.data
+        print 'hi'
         self._id = 0
         self.SendHello()
     
@@ -30,6 +30,7 @@ class BaseBotClient(p.Protocol):
         print 'Received', data
 
     def Send(self, arg):
+	print 'sending %s' % arg
         self.transport.write(arg)
   
     def SendHello(self):
