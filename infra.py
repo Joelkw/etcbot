@@ -8,8 +8,8 @@ import threading
 from twisted.internet import reactor, protocol as p
 
 TEAMNAME = 'IMMEDEBUG'
-# EXCHANGE_URL = 'test-exch-' + TEAMNAME.lower()
-EXCHANGE_URL='production'
+EXCHANGE_URL = 'test-exch-' + TEAMNAME.lower()
+# EXCHANGE_URL='production'
 BUFFER = 1024
 
 SYMBOLS = {
@@ -22,18 +22,63 @@ SYMBOLS = {
         'XLF': 'XLF'
         }
 
+class localBook(object):
+  def __init__(self):
+      localBook.symbols = ["BOND", "VALBZ", "VALE", "GS", "MS", "WFC", "XLF"]
+      # let book be current price, stock:[(price, amount)] 
+      localBook.book = {}
+      for symbol in localBook.symbols:
+          localBook.book[symbol] = {'lasttradeprice': 1000000, 'size': 0, 'totalorders': 0, 'sells': [(0,0)], 'buys': [(0,0)], 'avgbookbuy': 0, 'avgbooksell': 0}
+
+  def trade_message(self, symbol, price):
+      self.book[symbol]['lasttradeprice'] = price
+
+  # orders are lists of tuples (price, size)
+  def book_message(self, symbol, buyorders, sellorders):
+      # because books update and we don't want duplicates just take 15 best
+      self.book[symbol]['buys'] = []
+      #self.book[symbol]['avgbookbuy'] = 0
+      #count = 0
+      for (price, size)in buyorders:
+          self.book[symbol]['buys'].append((price,size))
+          #self.book[symbol]['avgbookbuy'] = 
+      self.book[symbol]['sells'] = []
+      for (price, size) in sellorders:
+          self.book[symbol]['sells'].append((price,size))
+
 class BaseBotClient(p.Protocol):
 
     def connectionMade(self):
         print 'hi'
         self._id = 0
         self.SendHello()
-	self.d = {}
-	threading.Timer(1.0, self.sendbuyorders).start()
-	threading.Timer(1.0, self.sendsellorders).start()
-
-    def dataReceived(self, data):
-	print data
+        self.d = {}
+        self.b = localBook()
+    
+    def dataReceived(self, dat):
+        datas = dat.split('\n')
+        for data in datas:
+          data = data.split(' ')
+          if data[0] == 'BOOK':
+              sym = data[1]
+              bi = data.index('BUY')
+              si = None
+              pp = []
+              for i in range(bi + 1, len(data)):
+                  if data[i] == 'SELL':
+                      si = i
+                      break
+                  p, s = data[i].split(':')
+                  pp.append((int(p), int(s)))
+  
+  
+              ss = []
+              if si:
+                  for i in range(si + 1, len(data)):
+                      p, s = data[i].split(':')
+                      ss.append((int(p), int(s)))
+  
+              self.b.book_message(sym, pp, ss)
 
     def Send(self, arg):
 	print 'sending %s' % arg
