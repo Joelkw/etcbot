@@ -31,9 +31,9 @@ class BaseBotClient(p.Protocol):
 	self.d = {}
 	threading.Timer(1.0, self.sendbuyorders).start()
 	threading.Timer(1.0, self.sendsellorders).start()
-    
+
     def dataReceived(self, data):
-	pass
+	print data
 
     def Send(self, arg):
 	print 'sending %s' % arg
@@ -60,16 +60,16 @@ class BaseBotClient(p.Protocol):
     	self.SendOrder('ADD', 'BOND', buy, price , amount)
 
     def sendbuyorders(self):
-	price = 999
-	for i in range(50):
-		self.SendBondOrder('BUY', price, 1)
+	price = 980
+	for i in range(20):
+		self.SendBondOrder('BUY', price + i, 1)
 
     def sendsellorders(self):
 	price = 1001
-	for i in range(50):
-		self.SendBondOrder('SELL', price, 1)
+	for i in range(20):
+		self.SendBondOrder('SELL', price + i, 1)
 
-class BaseBotFactory(p.ClientFactory):
+class BaseBotFactory(p.ReconnectingClientFactory):
 
     protocol = BaseBotClient
 
