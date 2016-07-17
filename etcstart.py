@@ -7,8 +7,8 @@ import threading
 from twisted.internet import reactor, protocol as p
 
 TEAMNAME = 'IMMEDEBUG'
-EXCHANGE_URL = 'test-exch-' + TEAMNAME.lower()
-# EXCHANGE_URL='production'
+#EXCHANGE_URL = 'test-exch-' + TEAMNAME.lower()
+EXCHANGE_URL='production'
 BUFFER = 1024
 
 SYMBOLS = {
@@ -58,7 +58,6 @@ class BaseBotClient(p.Protocol):
         self.SendHello()
         self.d = {}
         self.b = localBook()
-        self.SendBondOrder('BUY', 1003, 13)
     
  
     def dataReceived(self, dat):
@@ -83,7 +82,14 @@ class BaseBotClient(p.Protocol):
                       p, s = data[i].split(':')
                       ss.append((int(p), int(s)))
               self.b.book_message(sym, pp, ss)
-          elif data[0] == 'TRADE':
+          #place highest sell order
+              # print self.b.book[sym]
+              if sym not in ['BOND', 'XLF']:
+                 (sprice, samount) = self.GetMostAgressive(sym, "SELL")
+                 (bprice, bamount) = self.GetMostAgressive(sym, "BUY")
+                 self.SendOrder("ADD", sym, "BUY", bprice, bamount)
+                 self.SendOrder("ADD", sym, "SELL", sprice, samount)
+          elif[0] == 'TRADE':
               self.b.book[data[1]]['lasttradeprice'] = data[2]
               self.b.book[data[1]]['history'].append(data[2])
               #pirint self.b.book
@@ -92,27 +98,27 @@ class BaseBotClient(p.Protocol):
                 self.b.book[data[2]]['holding'] += int(data[5])
                 self.b.book[data[2]]['ourbuys'].append((data[4],data[5])) 
                 self.b.book[data[2]]['history'].append(data[4])   
-                if data[2] == 'XLF':
+                """if data[2] == 'XLF':
                   self.SendXLFConvertOrder("SELL", 10)
                   #convert immediately and sell 
-                  print "!XLF! Just converted an XLF!"
-                  print "" 
+                  #print "!XLF! Just converted an XLF!"
+                  #print """
               elif data[3] == 'SELL':
                 self.b.book[data[2]]['holding'] -= int(data[5])
                 self.b.book[data[2]]['oursells'].append((data[4],data[5]))
                 self.b.book[data[2]]['history'].append(data[4]) 
-                if data[2] == 'XLF':
+                """if data[2] == 'XLF':
                   # we need to immediately sell    
                   for stock in ["BOND", "MS"]:
-                    self.SendOrder('ADD', symbol, "SELL", self.b.rememberxlfprice[symbol], 3)
+                    self.SendOrder('ADD', stock, "SELL", self.b.rememberxlfprice[stock], 3)
                   for stock in ["GS", "WFC"]:
-                    self.SendOrder('ADD', symbol, "SELL", self.b.rememberxlfprice[symbol], 2)
-                    print "Selling ", symbol, "at ", self.b.rememberxlfprice[symbol], "!\n"
-                  print "!XLF Just put out sells for the stocks!"
-                  print "" 
+                    self.SendOrder('ADD', stock, "SELL", self.b.rememberxlfprice[stock], 2)
+                    #print "Selling ", symbol, "at ", self.b.rememberxlfprice[symbol], "!\n"
+                  #print "!XLF Just put out sells for the stocks!"
+                 # print """
 
           #print self.b.book["BOND"]
-          bookabbr = self.b.book 
+          """bookabbr = self.b.book 
           Tenxlf  = self.GetXLFPackPrice()
           Tenxlfval = self.TenXLFValue()
           if ((Tenxlf+13) < Tenxlfval) and self.SpaceForXLFStocks() and ((Tenxlf+13)*10 > Tenxlfval):
@@ -120,9 +126,9 @@ class BaseBotClient(p.Protocol):
             print "!XLF! sent a buy order for 10 XLF at price", Tenxlf, "\n"
             print "the value of the 10 was ", Tenxlf, " and the value of the stocks was ", Tenxlfval
             print "\n"
-          else:
-            print "!XLF! value for 10 was ", Tenxlf, " and the value of the stocks was ", Tenxlfval, " so no buy!"
-            print self.b.book["XLF"]
+         # else:
+            #print "!XLF! value for 10 was ", Tenxlf, " and the value of the stocks was ", Tenxlfval, " so no buy!"
+            #print self.b.book["XLF"]"""
 
     def Send(self, arg):
         print 'sending %s' % arg
@@ -191,10 +197,10 @@ class BaseBotClient(p.Protocol):
       return self.b.book[symbol]['lasttradeprice']
 
     def TenXLFValue(self):
-        print "Bond sell price for 3 was ", self.GetGuaranteedSellPrice("BOND", 3)
-        print "GS sell price for 2 was ", self.GetGuaranteedSellPrice("GS", 2)
-        print "MS sell price for 3 was ", self.GetGuaranteedSellPrice("MS", 3)
-        print "WFC sell price for 2 was ", self.GetGuaranteedSellPrice("BOND", 2)
+#        print "Bond sell price for 3 was ", self.GetGuaranteedSellPrice("BOND", 3)
+#        print "GS sell price for 2 was ", self.GetGuaranteedSellPrice("GS", 2)
+#        print "MS sell price for 3 was ", self.GetGuaranteedSellPrice("MS", 3)
+#        print "WFC sell price for 2 was ", self.GetGuaranteedSellPrice("BOND", 2)
         return (self.GetGuaranteedSellPrice("BOND", 3) * 3 + self.GetGuaranteedSellPrice("GS", 2) * 2 + self.GetGuaranteedSellPrice("MS", 3) * 3 + self.GetGuaranteedSellPrice("WFC", 2) * 2)
 
     def SpaceForStock(self, symbol, amount):
@@ -224,6 +230,18 @@ class BaseBotClient(p.Protocol):
     def SendXLFConvertOrder(self, buy, amount):
         self.SendXLFConvert('CONVERT', 'XLF', buy, amount)
 
+    def GetMostAgressive(self, sym, buy):
+        if buy == "BUY":
+            if self.b.book[sym]["buys"]:    
+                return self.b.book[sym]["buys"][-1]
+            else:
+                return (0,0)
+        if buy == "SELL":
+            if self.b.book[sym]["sells"]:
+                return self.b.book[sym]["sells"][-1]
+            else:
+                return (0,0)
+            
     def sendbuyorders(self):
         price = 980
         for i in range(20):
